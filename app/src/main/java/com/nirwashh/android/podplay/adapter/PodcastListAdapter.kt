@@ -25,16 +25,12 @@ class PodcastListAdapter(
     }
 
     inner class ViewHolder(
-        databinding: SearchItemBinding,
+        val binding: SearchItemBinding,
         private val podcastListAdapterListener: PodcastListAdapterListener
-    ) : RecyclerView.ViewHolder(databinding.root) {
+    ) : RecyclerView.ViewHolder(binding.root) {
         var podcastSummaryViewData: PodcastSummaryViewData? = null
-        val nameTextView: TextView = databinding.podcastNameTextView
-        val lastUpdatedTextView: TextView = databinding.podcastLastUpdatedTextView
-        val podcastImageView: ImageView = databinding.podcastImage
-
         init {
-            databinding.searchItem.setOnClickListener {
+            binding.searchItem.setOnClickListener {
                 podcastSummaryViewData?.let {
                     podcastListAdapterListener.onShowDetails(it)
                 }
@@ -47,23 +43,20 @@ class PodcastListAdapter(
         this.notifyDataSetChanged()
     }
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PodcastListAdapter.ViewHolder {
-        return ViewHolder(SearchItemBinding.inflate(
-            LayoutInflater.from(parent.context), parent, false
-        ), podcastListAdapterListener)
+        val binding = SearchItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        return ViewHolder(binding, podcastListAdapterListener)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val searchViewList = podcastSummaryViewList ?: return
         val searchView = searchViewList[position]
-        holder.podcastSummaryViewData = searchView
-        holder.nameTextView.text = searchView.name
-        holder.lastUpdatedTextView.text = searchView.lastUpdated
+        with(holder) {
+            podcastSummaryViewData = searchView
+            binding.podcastNameTextView.text = searchView.name
+            binding.podcastLastUpdatedTextView.text = searchView.lastUpdated
+        }
         val url = searchView.imageUrl
-        Picasso.get().load(url)
-            .centerCrop()
-            .placeholder(R.drawable.ic_play)
-            .error(R.drawable.ic_error)
-            .into(holder.podcastImageView)
+        Glide.with(parentActivity).load(url).into(holder.binding.podcastImage)
     }
 
     override fun getItemCount() = podcastSummaryViewList?.size ?: 0

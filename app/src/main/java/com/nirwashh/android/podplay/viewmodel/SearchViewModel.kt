@@ -16,7 +16,8 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         var feedUrl: String? = ""
     )
 
-    private fun itunesPodcastToPodcastSummaryView(itunesPodcast: PodcastResponse.ItunesPodcast) :
+    private fun itunesPodcastToPodcastSummaryView(
+        itunesPodcast: PodcastResponse.ItunesPodcast) :
             PodcastSummaryViewData {
         return PodcastSummaryViewData(
             itunesPodcast.collectionCensoredName,

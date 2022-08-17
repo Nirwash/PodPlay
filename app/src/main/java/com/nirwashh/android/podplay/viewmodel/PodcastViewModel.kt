@@ -14,7 +14,6 @@ import java.util.*
 
 class PodcastViewModel(application: Application) : AndroidViewModel(application) {
     var podcastRepo: PodcastRepo? = null
-    var activePodcastViewData: PodcastViewData? = null
     private val _podcastLiveData = MutableLiveData<PodcastViewData?>()
     val podcastLiveData: LiveData<PodcastViewData?> = _podcastLiveData
 
