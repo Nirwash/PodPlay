@@ -11,15 +11,16 @@ import android.view.MenuItem
 import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.widget.SearchView
+import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.nirwashh.android.podplay.R
+import com.nirwashh.android.podplay.ui.PodcastDetailFragment.*
 import com.nirwashh.android.podplay.adapter.PodcastListAdapter
 import com.nirwashh.android.podplay.adapter.PodcastListAdapter.*
 import com.nirwashh.android.podplay.databinding.ActivityPodcastBinding
 import com.nirwashh.android.podplay.repository.ItunesRepo
 import com.nirwashh.android.podplay.repository.PodcastRepo
-import com.nirwashh.android.podplay.service.FeedService
 import com.nirwashh.android.podplay.service.ItunesService
 import com.nirwashh.android.podplay.service.RssFeedService
 import com.nirwashh.android.podplay.viewmodel.PodcastViewModel
@@ -29,7 +30,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener {
+class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener, OnPodcastDetailListener {
     private lateinit var b: ActivityPodcastBinding
     private lateinit var podcastListAdapter: PodcastListAdapter
     private lateinit var searchMenuItem: MenuItem
@@ -44,7 +45,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener {
         setupToolbar()
         setupViewModels()
         updateControls()
-        createSubscription()
+        setupPodcastListView()
         handleIntent(intent)
         addBackStackListener()
     }
@@ -54,6 +55,16 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener {
         inflater.inflate(R.menu.menu_search, menu)
         searchMenuItem = menu.findItem(R.id.search_item)
         val searchView = searchMenuItem.actionView as SearchView
+        searchMenuItem.setOnActionExpandListener(object : MenuItem.OnActionExpandListener{
+            override fun onMenuItemActionExpand(p0: MenuItem?): Boolean {
+                return true
+            }
+
+            override fun onMenuItemActionCollapse(p0: MenuItem?): Boolean {
+                showSubscribedPodcast()
+                return true
+            }
+        })
         val searchManager = getSystemService(Context.SEARCH_SERVICE) as SearchManager
         searchView.setSearchableInfo(searchManager.getSearchableInfo(componentName))
         if (supportFragmentManager.backStackEntryCount > 0) b.podcastRecyclerView.visibility = View.INVISIBLE
@@ -93,7 +104,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener {
     private fun setupViewModels() {
         val service = ItunesService.instance
         searchViewModel.iTunesRepo = ItunesRepo(service)
-        podcastViewModel.podcastRepo = PodcastRepo(RssFeedService.instance)
+        podcastViewModel.podcastRepo = PodcastRepo(RssFeedService.instance, podcastViewModel.podcastDao)
     }
 
     private fun updateControls() {
@@ -110,22 +121,18 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener {
     }
 
     override fun onShowDetails(podcastSummaryViewData: SearchViewModel.PodcastSummaryViewData) {
-        podcastSummaryViewData.feedUrl?.let {
+        podcastSummaryViewData.feedUrl ?: return
             showProgressBar()
-            podcastViewModel.getPodcast(podcastSummaryViewData)
-        }
-    }
-
-    private fun createSubscription() {
-        podcastViewModel.podcastLiveData.observe(this) {
-            hideProgressBar()
-            if (it != null) {
+            podcastViewModel.viewModelScope.launch(context = Dispatchers.Main) {
+                podcastViewModel.getPodcast(podcastSummaryViewData)
+                hideProgressBar()
                 showDetailsFragment()
-            } else {
-                showError("Error loading feed")
             }
+
         }
-    }
+
+
+
 
     private fun showError(message: String) {
         AlertDialog.Builder(this)
@@ -168,11 +175,35 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener {
         searchMenuItem.isVisible = false
     }
 
+    private fun showSubscribedPodcast() {
+        val podcasts = podcastViewModel.getPodcasts()?.value
+        if (podcasts != null) {
+            b.toolbar.title = getString(R.string.subscribed_podcasts)
+            podcastListAdapter.setSearchData(podcasts)
+        }
+    }
+
+    private fun setupPodcastListView() {
+        podcastViewModel.getPodcasts()?.observe(this) {
+            if (it != null) showSubscribedPodcast()
+        }
+    }
+
     private fun addBackStackListener() {
         supportFragmentManager.addOnBackStackChangedListener {
             if (supportFragmentManager.backStackEntryCount == 0) {
                 b.podcastRecyclerView.visibility = View.VISIBLE
             }
         }
+    }
+
+    override fun onSubscribe() {
+        podcastViewModel.saveActivePodcast()
+        supportFragmentManager.popBackStack()
+    }
+
+    override fun onUnSubscribe() {
+        podcastViewModel.deleteActivePodcast()
+        supportFragmentManager.popBackStack()
     }
 }

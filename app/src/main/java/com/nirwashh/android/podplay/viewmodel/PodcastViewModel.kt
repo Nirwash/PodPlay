@@ -1,14 +1,14 @@
 package com.nirwashh.android.podplay.viewmodel
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.*
+import com.nirwashh.android.podplay.db.PodPlayDatabase
+import com.nirwashh.android.podplay.db.PodcastDao
 import com.nirwashh.android.podplay.model.Episode
 import com.nirwashh.android.podplay.viewmodel.SearchViewModel.*
 import com.nirwashh.android.podplay.model.Podcast
 import com.nirwashh.android.podplay.repository.PodcastRepo
+import com.nirwashh.android.podplay.util.DateUtils
 import kotlinx.coroutines.launch
 import java.util.*
 
@@ -16,6 +16,10 @@ class PodcastViewModel(application: Application) : AndroidViewModel(application)
     var podcastRepo: PodcastRepo? = null
     private val _podcastLiveData = MutableLiveData<PodcastViewData?>()
     val podcastLiveData: LiveData<PodcastViewData?> = _podcastLiveData
+    val podcastDao: PodcastDao = PodPlayDatabase.getInstance(application, viewModelScope)
+        .podcastDao()
+    private var activePodcast: Podcast? = null
+    var livePodcastSummaryViewData: LiveData<List<PodcastSummaryViewData>>? = null
 
     data class PodcastViewData(
         var subscribed: Boolean = false,
@@ -50,7 +54,7 @@ class PodcastViewModel(application: Application) : AndroidViewModel(application)
 
     private fun podcastToPodcastView(podcast: Podcast): PodcastViewData {
         return PodcastViewData(
-            false,
+            podcast.id != null,
             podcast.feedTitle,
             podcast.feedUrl,
             podcast.feedDesc,
@@ -59,19 +63,55 @@ class PodcastViewModel(application: Application) : AndroidViewModel(application)
         )
     }
 
-    fun getPodcast(podcastSummaryViewData: PodcastSummaryViewData) {
+    suspend fun getPodcast(podcastSummaryViewData: PodcastSummaryViewData) {
         podcastSummaryViewData.feedUrl?.let { url ->
-            viewModelScope.launch {
                 podcastRepo?.getPodcast(url)?.let {
                     it.feedTitle = podcastSummaryViewData.name ?: ""
                     it.imageUrl = podcastSummaryViewData.imageUrl ?: ""
                     _podcastLiveData.value = podcastToPodcastView(it)
+                    activePodcast = it
                 } ?: run {
                     _podcastLiveData.value = null
                 }
-            }
         } ?: run {
             _podcastLiveData.value = null
         }
+    }
+
+    fun getPodcasts(): LiveData<List<PodcastSummaryViewData>>? {
+        val repo = podcastRepo ?: return null
+        if (livePodcastSummaryViewData == null) {
+            val liveData = repo.getAll()
+            livePodcastSummaryViewData = Transformations.map(liveData) {
+                podcastList ->
+                podcastList.map { podcast ->
+                    podcastToSummaryView(podcast)
+                }
+            }
+        }
+        return livePodcastSummaryViewData
+    }
+
+    fun saveActivePodcast() {
+        val repo = podcastRepo ?: return
+        activePodcast?.let {
+            repo.save(it)
+        }
+    }
+
+    fun deleteActivePodcast() {
+        val repo = podcastRepo ?: return
+        activePodcast?.let {
+            repo.delete(it)
+        }
+    }
+
+    private fun podcastToSummaryView(podcast: Podcast): PodcastSummaryViewData {
+        return PodcastSummaryViewData(
+            podcast.feedTitle,
+            DateUtils.dateToShortDate(podcast.lastUpdated),
+            podcast.imageUrl,
+            podcast.feedUrl
+        )
     }
 }

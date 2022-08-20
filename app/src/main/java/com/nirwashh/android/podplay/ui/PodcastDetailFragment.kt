@@ -1,5 +1,6 @@
 package com.nirwashh.android.podplay.ui
 
+import android.content.Context
 import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
 import android.view.*
@@ -12,11 +13,13 @@ import com.nirwashh.android.podplay.R
 import com.nirwashh.android.podplay.adapter.EpisodeListAdapter
 import com.nirwashh.android.podplay.databinding.FragmentPodcastDetailBinding
 import com.nirwashh.android.podplay.viewmodel.PodcastViewModel
+import java.lang.RuntimeException
 
 class PodcastDetailFragment : Fragment() {
     private lateinit var dataBinding: FragmentPodcastDetailBinding
     private lateinit var episodeListAdapter: EpisodeListAdapter
     private val podcastViewModel: PodcastViewModel by activityViewModels()
+    private var listener: OnPodcastDetailListener? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
@@ -31,9 +34,19 @@ class PodcastDetailFragment : Fragment() {
         return dataBinding.root
     }
 
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if (context is OnPodcastDetailListener) {
+            listener = context
+        } else {
+            throw RuntimeException("$context must implement OnPodcastDetailListener")
+        }
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        podcastViewModel.podcastLiveData.observe(viewLifecycleOwner
+        podcastViewModel.podcastLiveData.observe(
+            viewLifecycleOwner
         ) { viewData ->
             if (viewData != null) {
                 dataBinding.feedTitleTextView.text = viewData.feedTitle
@@ -51,6 +64,7 @@ class PodcastDetailFragment : Fragment() {
                 dataBinding.episodeRecyclerView.addItemDecoration(dividerItemDecoration)
                 episodeListAdapter = EpisodeListAdapter(viewData.episodes)
                 dataBinding.episodeRecyclerView.adapter = episodeListAdapter
+                activity?.invalidateOptionsMenu()
             }
         }
     }
@@ -60,10 +74,40 @@ class PodcastDetailFragment : Fragment() {
         inflater.inflate(R.menu.menu_detail, menu)
     }
 
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.menu_feed_action -> {
+                if (item.title == getString(R.string.unsubscribe)) {
+                    listener?.onUnSubscribe()
+                } else {
+                    listener?.onSubscribe()
+                }
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu) {
+        podcastViewModel.podcastLiveData.observe(viewLifecycleOwner) { podcast ->
+            if (podcast != null) {
+                menu.findItem(R.id.menu_feed_action).title =
+                    if (podcast.subscribed) getString(R.string.unsubscribe)
+                    else getString(R.string.subscribe)
+            }
+        }
+        super.onPrepareOptionsMenu(menu)
+    }
+
 
     companion object {
         fun newInstance(): PodcastDetailFragment {
             return PodcastDetailFragment()
         }
+    }
+
+    interface OnPodcastDetailListener {
+        fun onSubscribe()
+        fun onUnSubscribe()
     }
 }

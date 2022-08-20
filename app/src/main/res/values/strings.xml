@@ -3,5 +3,7 @@
     <string name="search_hint">Enter podcast search</string>
     <string name="search">Search</string>
     <string name="subscribe">Subscribe</string>
+    <string name="unsubscribe">Unsubscribe</string>
     <string name="ok_button">OK</string>
+    <string name="subscribed_podcasts">Subscribed</string>
 </resources>

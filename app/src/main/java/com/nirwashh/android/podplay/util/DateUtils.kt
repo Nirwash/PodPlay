@@ -9,15 +9,15 @@ object DateUtils {
         if (jsonDate == null) {
             return "-"
         }
-        val inFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+        val inFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ENGLISH)
         val date = inFormat.parse(jsonDate) ?: return "-"
-        val outputFormat = DateFormat.getDateInstance(DateFormat.SHORT, Locale.getDefault())
+        val outputFormat = DateFormat.getDateInstance(DateFormat.SHORT, Locale.ENGLISH)
         return outputFormat.format(date)
     }
 
     fun xmlDateToDate(dateString: String?): Date {
         val date = dateString ?: return Date()
-        val inFormat = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.getDefault())
+        val inFormat = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH)
         return inFormat.parse(date) ?: Date()
     }
 
