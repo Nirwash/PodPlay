@@ -35,7 +35,6 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener {
     private lateinit var searchMenuItem: MenuItem
     private val searchViewModel by viewModels<SearchViewModel>()
     private val podcastViewModel by viewModels<PodcastViewModel>()
-    val TAG = javaClass.simpleName
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,6 +44,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener {
         setupToolbar()
         setupViewModels()
         updateControls()
+        createSubscription()
         handleIntent(intent)
         addBackStackListener()
     }
@@ -159,7 +159,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener {
 
     private fun showDetailsFragment() {
         val podcastDetailFragment = createPodcastDetailFragment()
-        supportFragmentManager.beginTransaction().add(
+        supportFragmentManager.beginTransaction().replace(
             R.id.podcastDetailContainer,
             podcastDetailFragment,
             TAG_DETAILS_FRAGMENT

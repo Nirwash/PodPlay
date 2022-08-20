@@ -39,7 +39,7 @@ class RssFeedService private constructor() {
                 println("server error, ${result.code()}, ${result.errorBody()}")
                 return null
             } else {
-                var rssFeedResponse: RssFeedResponse? = null
+                var rssFeedResponse: RssFeedResponse?
                 val dbFactory = DocumentBuilderFactory.newInstance()
                 val dBuilder = dbFactory.newDocumentBuilder()
                 withContext(Dispatchers.IO) {
@@ -61,7 +61,6 @@ class RssFeedService private constructor() {
     private fun domToRssFeedResponse(node: Node, rssFeedResponse: RssFeedResponse) {
         if (node.nodeType == Node.ELEMENT_NODE) {
             val nodeName = node.nodeName
-
             val parentName = node.parentNode.nodeName
             val grandParentName = node.parentNode.parentNode?.nodeName ?: ""
             if (parentName == "item" && grandParentName == "channel") {

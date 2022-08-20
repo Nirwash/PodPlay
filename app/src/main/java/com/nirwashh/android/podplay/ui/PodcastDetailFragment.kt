@@ -60,14 +60,6 @@ class PodcastDetailFragment : Fragment() {
         inflater.inflate(R.menu.menu_detail, menu)
     }
 
-    private fun updateControls() {
-        val viewData = podcastViewModel.activePodcastViewData ?: return
-        dataBinding.feedTitleTextView.text = viewData.feedTitle
-        dataBinding.feedDescTextView.text = viewData.feedDesc
-        activity?.let { activity ->
-            Glide.with(activity).load(viewData.imageUrl).into(dataBinding.feedImageView)
-        }
-    }
 
     companion object {
         fun newInstance(): PodcastDetailFragment {

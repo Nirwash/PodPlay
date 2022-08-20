@@ -6,7 +6,7 @@ data class PodcastResponse(
         data class ItunesPodcast(
             val collectionCensoredName: String,
             val feedUrl: String,
-            val artWorkUrl30: String,
+            val artworkUrl30: String,
             val releaseDate: String
         )
     }
