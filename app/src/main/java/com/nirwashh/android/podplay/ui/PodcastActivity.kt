@@ -14,6 +14,7 @@ import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.work.*
 import com.nirwashh.android.podplay.R
 import com.nirwashh.android.podplay.ui.PodcastDetailFragment.*
 import com.nirwashh.android.podplay.adapter.PodcastListAdapter
@@ -25,10 +26,13 @@ import com.nirwashh.android.podplay.service.ItunesService
 import com.nirwashh.android.podplay.service.RssFeedService
 import com.nirwashh.android.podplay.viewmodel.PodcastViewModel
 import com.nirwashh.android.podplay.viewmodel.SearchViewModel
+import com.nirwashh.android.podplay.worker.EpisodeUpdateWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
+
 
 class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener, OnPodcastDetailListener {
     private lateinit var b: ActivityPodcastBinding
@@ -36,6 +40,12 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener, OnPodca
     private lateinit var searchMenuItem: MenuItem
     private val searchViewModel by viewModels<SearchViewModel>()
     private val podcastViewModel by viewModels<PodcastViewModel>()
+
+    companion object {
+        private const val TAG_DETAILS_FRAGMENT = "DetailsFragment"
+        private const val TAG_EPISODE_UPDATE_JOB = "com.raywender.podplay.episodes"
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,6 +58,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener, OnPodca
         setupPodcastListView()
         handleIntent(intent)
         addBackStackListener()
+        scheduleJobs()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -88,6 +99,15 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener, OnPodca
         if (Intent.ACTION_SEARCH == intent.action) {
             val query = intent.getStringExtra(SearchManager.QUERY) ?: return
             performSearch(query)
+        }
+        val podcastFeedUrl = intent.getStringExtra(EpisodeUpdateWorker.EXTRA_FEED_URL)
+        if (podcastFeedUrl != null) {
+            podcastViewModel.viewModelScope.launch {
+                val podcastSummaryViewData = podcastViewModel.setActivePodcast(podcastFeedUrl)
+                podcastSummaryViewData?.let { podcastSummaryViewData ->
+                    onShowDetails(podcastSummaryViewData)
+                }
+            }
         }
     }
 
@@ -150,9 +170,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener, OnPodca
         b.progressBar.visibility = View.INVISIBLE
     }
 
-    companion object {
-        private const val TAG_DETAILS_FRAGMENT = "DetailsFragment"
-    }
+
 
     private fun createPodcastDetailFragment(): PodcastDetailFragment {
         var podcastDetailFragment =
@@ -205,5 +223,18 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener, OnPodca
     override fun onUnSubscribe() {
         podcastViewModel.deleteActivePodcast()
         supportFragmentManager.popBackStack()
+    }
+
+    private fun scheduleJobs() {
+        val constraints: Constraints = Constraints.Builder().apply {
+            setRequiredNetworkType(NetworkType.CONNECTED)
+            setRequiresCharging(true)
+        }.build()
+        val request = PeriodicWorkRequestBuilder<EpisodeUpdateWorker>(
+            1, TimeUnit.HOURS
+        ).setConstraints(constraints).build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            TAG_EPISODE_UPDATE_JOB, ExistingPeriodicWorkPolicy.REPLACE, request
+        )
     }
 }
