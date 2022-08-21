@@ -29,7 +29,9 @@ class EpisodeListAdapter(
         val releaseDateTextView: TextView = databinding.releaseDateView
         init {
             databinding.root.setOnClickListener {
-                episodeListAdapterListener.onSelectedEpisode(it)
+                episodeViewData?.let {
+                    episodeListAdapterListener.onSelectedEpisode(it)
+                }
             }
         }
     }
