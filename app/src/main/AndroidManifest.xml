@@ -16,6 +16,14 @@
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.PodPlay"
         tools:targetApi="31">
+
+        <service android:name=".service.PodPlayMediaService"
+            android:exported="false">
+            <intent-filter>
+                <action
+                    android:name="android.media.browse.MediaBrowserService"/>
+            </intent-filter>
+        </service>
         <activity
             android:name=".ui.PodcastActivity"
             android:theme="@style/Theme.PodPlay.NoActionBar"
