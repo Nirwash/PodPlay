@@ -12,12 +12,11 @@ import java.util.*
             entity = Podcast::class,
             parentColumns = ["id"],
             childColumns = ["podcastId"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE)
     ],
     indices = [Index("podcastId")]
 )
-data class Episode(
+data class Episode (
     @PrimaryKey var guid: String = "",
     var podcastId: Long? = null,
     var title: String = "",

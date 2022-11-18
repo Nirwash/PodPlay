@@ -17,22 +17,28 @@ import java.util.concurrent.TimeUnit
 import javax.xml.parsers.DocumentBuilderFactory
 
 class RssFeedService private constructor() {
+
     suspend fun getFeed(xmlFileURL: String): RssFeedResponse? {
         val service: FeedService
+
         val interceptor = HttpLoggingInterceptor()
         interceptor.level = HttpLoggingInterceptor.Level.BODY
+
         val client = OkHttpClient().newBuilder()
             .connectTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
+
         if (BuildConfig.DEBUG) {
             client.addInterceptor(interceptor)
         }
         client.build()
+
         val retrofit = Retrofit.Builder()
             .baseUrl("${xmlFileURL.split("?")[0]}/")
             .build()
         service = retrofit.create(FeedService::class.java)
+
         try {
             val result = service.getFeed(xmlFileURL)
             if (result.code() >= 400) {
@@ -49,7 +55,6 @@ class RssFeedService private constructor() {
                     println(rss)
                     rssFeedResponse = rss
                 }
-
                 return rssFeedResponse
             }
         } catch (t: Throwable) {
@@ -62,10 +67,14 @@ class RssFeedService private constructor() {
         if (node.nodeType == Node.ELEMENT_NODE) {
             val nodeName = node.nodeName
             val parentName = node.parentNode.nodeName
+            // 1
             val grandParentName = node.parentNode.parentNode?.nodeName ?: ""
+            // 2
             if (parentName == "item" && grandParentName == "channel") {
+                // 3
                 val currentItem = rssFeedResponse.episodes?.last()
                 if (currentItem != null) {
+                    // 4
                     when (nodeName) {
                         "title" -> currentItem.title = node.textContent
                         "description" -> currentItem.description = node.textContent
@@ -74,8 +83,10 @@ class RssFeedService private constructor() {
                         "pubDate" -> currentItem.pubDate = node.textContent
                         "link" -> currentItem.link = node.textContent
                         "enclosure" -> {
-                            currentItem.url = node.attributes.getNamedItem("url").textContent
-                            currentItem.type = node.attributes.getNamedItem("type").textContent
+                            currentItem.url = node.attributes.getNamedItem("url")
+                                .textContent
+                            currentItem.type = node.attributes.getNamedItem("type")
+                                .textContent
                         }
                     }
                 }
@@ -86,7 +97,8 @@ class RssFeedService private constructor() {
                     "description" -> rssFeedResponse.description = node.textContent
                     "itunes:summary" -> rssFeedResponse.summary = node.textContent
                     "item" -> rssFeedResponse.episodes?.add(RssFeedResponse.EpisodeResponse())
-                    "pubDate" -> rssFeedResponse.lastUpdated = DateUtils.xmlDateToDate(node.textContent)
+                    "pubDate" -> rssFeedResponse.lastUpdated =
+                        DateUtils.xmlDateToDate(node.textContent)
                 }
             }
         }

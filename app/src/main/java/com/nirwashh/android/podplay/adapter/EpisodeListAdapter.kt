@@ -7,33 +7,35 @@ import androidx.recyclerview.widget.RecyclerView
 import com.nirwashh.android.podplay.databinding.EpisodeItemBinding
 import com.nirwashh.android.podplay.util.DateUtils
 import com.nirwashh.android.podplay.util.HtmlUtils
-import com.nirwashh.android.podplay.viewmodel.PodcastViewModel.*
+import com.nirwashh.android.podplay.viewmodel.PodcastViewModel
 
 class EpisodeListAdapter(
-    private var episodeViewList: List<EpisodeViewData>?,
+    private var episodeViewList: List<PodcastViewModel.EpisodeViewData>?,
     private val episodeListAdapterListener: EpisodeListAdapterListener
 ) : RecyclerView.Adapter<EpisodeListAdapter.ViewHolder>() {
 
     interface EpisodeListAdapterListener {
-        fun onSelectedEpisode(episodeViewData: EpisodeViewData)
+        fun onSelectedEpisode(episodeViewData: PodcastViewModel.EpisodeViewData)
     }
 
     inner class ViewHolder(
-        databinding: EpisodeItemBinding,
+        binding: EpisodeItemBinding,
         val episodeListAdapterListener: EpisodeListAdapterListener
-    ) : RecyclerView.ViewHolder(databinding.root) {
-        var episodeViewData: EpisodeViewData? = null
-        val titleTextView: TextView = databinding.titleView
-        val descTextView: TextView = databinding.descView
-        val durationTextView: TextView = databinding.durationView
-        val releaseDateTextView: TextView = databinding.releaseDateView
+    ) : RecyclerView.ViewHolder(binding.root) {
+
         init {
-            databinding.root.setOnClickListener {
+            binding.root.setOnClickListener {
                 episodeViewData?.let {
                     episodeListAdapterListener.onSelectedEpisode(it)
                 }
             }
         }
+
+        var episodeViewData: PodcastViewModel.EpisodeViewData? = null
+        val titleTextView: TextView = binding.titleView
+        val descTextView: TextView = binding.descView
+        val durationTextView: TextView = binding.durationView
+        val releaseDateTextView: TextView = binding.releaseDateView
     }
 
     override fun onCreateViewHolder(
@@ -62,6 +64,7 @@ class EpisodeListAdapter(
         }
     }
 
-    override fun getItemCount() = episodeViewList?.size ?: 0
-
+    override fun getItemCount(): Int {
+        return episodeViewList?.size ?: 0
+    }
 }

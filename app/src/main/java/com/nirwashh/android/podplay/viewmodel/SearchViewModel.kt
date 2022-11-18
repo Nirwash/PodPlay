@@ -7,6 +7,7 @@ import com.nirwashh.android.podplay.service.PodcastResponse
 import com.nirwashh.android.podplay.util.DateUtils
 
 class SearchViewModel(application: Application) : AndroidViewModel(application) {
+
     var iTunesRepo: ItunesRepo? = null
 
     data class PodcastSummaryViewData(
@@ -17,17 +18,18 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     )
 
     private fun itunesPodcastToPodcastSummaryView(
-        itunesPodcast: PodcastResponse.ItunesPodcast) :
+        itunesPodcast: PodcastResponse.ItunesPodcast
+    ):
             PodcastSummaryViewData {
         return PodcastSummaryViewData(
             itunesPodcast.collectionCensoredName,
             DateUtils.jsonDateToShortDate(itunesPodcast.releaseDate),
-            itunesPodcast.artworkUrl30,
+            itunesPodcast.artworkUrl100,
             itunesPodcast.feedUrl
         )
     }
 
-    suspend fun searchPodcast(term: String): List<PodcastSummaryViewData> {
+    suspend fun searchPodcasts(term: String): List<PodcastSummaryViewData> {
         val results = iTunesRepo?.searchByTerm(term)
         if (results != null && results.isSuccessful) {
             val podcasts = results.body()?.results
@@ -37,6 +39,6 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
         }
-        return  emptyList()
+        return emptyList()
     }
 }
